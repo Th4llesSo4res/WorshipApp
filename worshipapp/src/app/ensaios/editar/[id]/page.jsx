@@ -1,13 +1,14 @@
-// src/app/ensaios/cadastro/page.jsx
+// src/app/ensaios/editar/[id]/page.jsx
 "use client";
 
-import { useState } from "react";
-import { collection, addDoc } from "firebase/firestore";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
 
-export default function CadastroEnsaio() {
+export default function EditarEnsaioPage() {
   usePermission(['lider', 'ministro']);
+  const { id } = useParams(); // Pega o ID do ensaio da URL
   const router = useRouter();
 
   const [data, setData] = useState("");
@@ -15,6 +16,28 @@ export default function CadastroEnsaio() {
   const [local, setLocal] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [mensagem, setMensagem] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function carregarEnsaio() {
+      if (!id) return; // Garante que o ID existe antes de buscar
+
+      const docRef = doc(db, "ensaios", id);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const dadosEnsaio = docSnap.data();
+        setData(dadosEnsaio.data || "");
+        setHora(dadosEnsaio.hora || "");
+        setLocal(dadosEnsaio.local || "");
+        setObservacoes(dadosEnsaio.observacoes || "");
+      } else {
+        setMensagem("Ensaio não encontrado.");
+      }
+      setLoading(false);
+    }
+    carregarEnsaio();
+  }, [id]); // Dependência do useEffect para recarregar se o ID mudar
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -26,30 +49,34 @@ export default function CadastroEnsaio() {
     }
 
     try {
-      await addDoc(collection(db, "ensaios"), {
+      const docRef = doc(db, "ensaios", id);
+      await updateDoc(docRef, {
         data,
         hora,
         local,
         observacoes,
-        criadoEm: new Date().toISOString(),
       });
 
-      setMensagem("✅ Ensaio agendado com sucesso!");
-      setData("");
-      setHora("");
-      setLocal("");
-      setObservacoes("");
-      
-      setTimeout(() => router.push("/ensaios/lista"), 1500); // Redireciona para uma lista futura
+      setMensagem("✅ Ensaio atualizado com sucesso!");
+      setTimeout(() => router.push("/ensaios/lista"), 1500); // Redireciona para a lista após 1.5s
     } catch (error) {
-      setMensagem("❌ Erro ao agendar ensaio: " + error.message);
+      setMensagem("❌ Erro ao atualizar ensaio: " + error.message);
+      console.error("Erro ao atualizar ensaio:", error);
     }
+  }
+
+  if (loading) {
+    return <p className="p-4 text-center">Carregando ensaio...</p>;
+  }
+
+  if (mensagem === "Ensaio não encontrado.") {
+    return <p className="p-4 text-center text-red-600">{mensagem}</p>;
   }
 
   return (
     <div className="min-h-screen p-6 bg-gray-100 flex justify-center">
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-lg">
-        <h1 className="text-2xl font-bold mb-6 text-center">Agendar Ensaio</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">Editar Ensaio</h1>
 
         <label className="block mb-2 font-semibold">Data:</label>
         <input
@@ -92,7 +119,7 @@ export default function CadastroEnsaio() {
           type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded"
         >
-          Agendar Ensaio
+          Atualizar Ensaio
         </button>
 
         {mensagem && <p className="mt-4 text-center">{mensagem}</p>}

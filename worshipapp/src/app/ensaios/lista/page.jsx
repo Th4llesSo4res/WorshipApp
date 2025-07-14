@@ -2,15 +2,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy, doc, deleteDoc } from "firebase/firestore"; // Importa deleteDoc
+import { collection, getDocs, query, orderBy, doc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext"; // <--- 1. NOVO: Importa o useAuth
 
 export default function ListaEnsaios() {
   const [ensaios, setEnsaios] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Alterado para true para refletir carregamento inicial
   const [mensagem, setMensagem] = useState(""); // Estado para mensagens de sucesso/erro
   const router = useRouter();
+  const { role, loading: authLoading } = useAuth(); // <--- 2. NOVO: Pega o role e authLoading do AuthContext
 
   // Função para carregar os ensaios do Firebase
   async function carregarEnsaios() {
@@ -34,40 +36,52 @@ export default function ListaEnsaios() {
   }
 
   useEffect(() => {
-    carregarEnsaios();
-  }, []);
+    // <--- 3. NOVO: Garante que o papel do usuário já foi carregado antes de carregar os ensaios
+    if (!authLoading) {
+      carregarEnsaios();
+    }
+  }, [authLoading]); // Depende do estado de carregamento da autenticação
 
   // Função para excluir um ensaio
   async function excluirEnsaio(id) {
     const confirmar = window.confirm("Tem certeza que deseja excluir este ensaio?");
-    if (!confirmar) return; // Se o usuário cancelar, não faz nada
+    if (!confirmar) return;
 
     setMensagem(""); // Limpa mensagens anteriores
     try {
-      await deleteDoc(doc(db, "ensaios", id)); // Exclui o documento do Firebase
+      await deleteDoc(doc(db, "ensaios", id));
       setMensagem("✅ Ensaio excluído com sucesso!");
-      carregarEnsaios(); // Recarrega a lista para refletir a exclusão
+      carregarEnsaios();
     } catch (error) {
-      console.error("Erro ao excluir ensaio:", error);
       setMensagem("❌ Erro ao excluir ensaio: " + error.message);
+      console.error("Erro ao excluir ensaio:", error);
     }
+  }
+
+  // <--- 4. NOVO: Variável para determinar se o usuário pode gerenciar ensaios
+  const canManageEnsaios = role === 'lider' || role === 'ministro';
+
+  // <--- 5. NOVO: Carregamento combinado (do AuthContext e da lista)
+  if (loading || authLoading) {
+    return <p className="p-4 text-center">Carregando ensaios...</p>;
   }
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4">
       <h1 className="text-3xl font-bold text-center mb-6 max-w-4xl mx-auto flex justify-between items-center">
         🗓️ Ensaios Agendados
-        <button
-          onClick={() => router.push("/ensaios/cadastro")}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-        >
-          + Novo Ensaio
-        </button>
+        {/* <--- 5. NOVO: Mostra o botão "Novo Ensaio" apenas se canManageEnsaios for true */}
+        {canManageEnsaios && (
+          <button
+            onClick={() => router.push("/ensaios/cadastro")}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+          >
+            + Novo Ensaio
+          </button>
+        )}
       </h1>
 
       <div className="max-w-4xl mx-auto space-y-6">
-        {loading && <p className="text-center text-gray-600">Carregando ensaios...</p>}
-
         {mensagem && <p className="text-center mt-4" style={{ color: mensagem.startsWith('✅') ? 'green' : 'red' }}>{mensagem}</p>}
 
         {!loading && ensaios.length === 0 && (
@@ -84,20 +98,23 @@ export default function ListaEnsaios() {
               {ensaio.observacoes && <p><strong>Observações:</strong> {ensaio.observacoes}</p>}
             </div>
 
-            <div className="flex gap-2 mt-4 md:mt-0"> {/* Adicionado flex e gap para os botões */}
-              <button
-                onClick={() => router.push(`/ensaios/editar/${ensaio.id}`)} {/* Redireciona para a página de edição */}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
-              >
-                Editar
-              </button>
-              <button
-                onClick={() => excluirEnsaio(ensaio.id)}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-              >
-                Excluir
-              </button>
-            </div>
+            {/* <--- 5. NOVO: Mostra os botões "Editar" e "Excluir" apenas se canManageEnsaios for true */}
+            {canManageEnsaios && (
+              <div className="flex gap-2 mt-4 md:mt-0">
+                <button
+                  onClick={() => router.push(`/ensaios/editar/${ensaio.id}`)}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => excluirEnsaio(ensaio.id)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                >
+                  Excluir
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

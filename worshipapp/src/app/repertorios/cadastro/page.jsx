@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 
 export default function CadastroRepertorio() {
+    usePermission(['lider', 'ministro']);
   const router = useRouter();
 
   const [dataCulto, setDataCulto] = useState("");

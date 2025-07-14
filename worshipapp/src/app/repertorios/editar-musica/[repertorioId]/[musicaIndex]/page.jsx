@@ -7,6 +7,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function EditarMusicaDoRepertorio() {
+  usePermission(['lider', 'ministro']);
   const { repertorioId, musicaIndex } = useParams(); // Pega o ID do repertório e o índice da música da URL
   const router = useRouter();
 

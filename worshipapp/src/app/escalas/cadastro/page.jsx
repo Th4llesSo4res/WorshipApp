@@ -6,6 +6,7 @@ import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function EscalasPage() {
+ usePermission(['lider', 'ministro']);
   const [data, setData] = useState("");
   const [vocal, setVocal] = useState("");
   const [guitarra, setGuitarra] = useState("");
