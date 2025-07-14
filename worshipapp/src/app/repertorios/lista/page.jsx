@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy, doc, deleteDoc, updateDoc, arrayRemove } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  doc,
+  deleteDoc,
+  updateDoc,
+  arrayRemove,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"; // Certifique-se que useRouter está importado
 
 export default function ListaRepertorios() {
   const [repertorios, setRepertorios] = useState([]);
@@ -29,15 +38,12 @@ export default function ListaRepertorios() {
     setLoading(false);
   }
 
-  // Excluir música específica do repertório
   async function excluirMusica(repertorioId, musica) {
     const confirm = window.confirm(`Quer mesmo excluir a música "${musica.nome}"?`);
     if (!confirm) return;
 
     try {
       const ref = doc(db, "repertorios", repertorioId);
-
-      // Usando arrayRemove para remover o objeto da música do array 'musicas'
       await updateDoc(ref, {
         musicas: arrayRemove(musica),
       });
@@ -46,6 +52,19 @@ export default function ListaRepertorios() {
       carregarRepertorios();
     } catch (error) {
       alert("Erro ao excluir música: " + error.message);
+    }
+  }
+
+  async function excluirRepertorio(id) {
+    const confirm = window.confirm("⚠️ Tem certeza que deseja excluir o repertório completo?");
+    if (!confirm) return;
+
+    try {
+      await deleteDoc(doc(db, "repertorios", id));
+      alert("Repertório excluído com sucesso!");
+      carregarRepertorios();
+    } catch (error) {
+      alert("Erro ao excluir repertório: " + error.message);
     }
   }
 
@@ -71,16 +90,30 @@ export default function ListaRepertorios() {
         {!loading &&
           repertorios.map((rep) => (
             <div key={rep.id} className="bg-white rounded shadow p-6">
+              {/* === CONSOLE.LOG ADICIONADO AQUI === */}
+              {console.log("ID do Repertório (rep.id):", rep.id)}
+              {/* ================================== */}
+
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">
                   Culto: {new Date(rep.dataCulto).toLocaleDateString()}
                 </h2>
-                <button
-                  onClick={() => router.push(`/repertorios/adicionar-musica/${rep.id}`)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-                >
-                  + Adicionar Música
-                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => router.push(`/repertorios/adicionar-musica/${rep.id}`)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
+                  >
+                    + Adicionar Música
+                  </button>
+
+                  <button
+                    onClick={() => excluirRepertorio(rep.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                  >
+                    🗑 Excluir Repertório
+                  </button>
+                </div>
               </div>
 
               {rep.musicas.length === 0 && <p className="text-gray-600">Nenhuma música cadastrada.</p>}
@@ -111,9 +144,7 @@ export default function ListaRepertorios() {
 
                   <div className="space-x-2">
                     <button
-                      onClick={() =>
-                        router.push(`/repertorios/editar-musica/${rep.id}/${i}`)
-                      }
+                      onClick={() => router.push(`/repertorios/editar-musica/${rep.id}/${i}`)}
                       className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
                     >
                       Editar
@@ -121,7 +152,7 @@ export default function ListaRepertorios() {
 
                     <button
                       onClick={() => excluirMusica(rep.id, musica)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
                     >
                       Excluir
                     </button>
