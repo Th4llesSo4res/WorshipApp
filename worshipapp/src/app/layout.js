@@ -1,7 +1,8 @@
 // src/app/layout.jsx
-import { Geist, Geist_Mono } from "next/font/google"; // Suas fontes Geist
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext"; // Importa o AuthProvider
+import { AuthProvider } from "@/context/AuthContext";
+import Sidebar from "@/components/Sidebar"; // <--- NOVO: Importa o Sidebar
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,19 +15,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "WorshipApp - Gestão de Equipe de Louvor", // Título atualizado
-  description: "App para organização de escalas, repertório e ensaios.", // Descrição atualizada
+  title: "WorshipApp - Gestão de Equipe de Louvor",
+  description: "App para organização de escalas, repertório e ensaios.",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-BR"> {/* Alterado para pt-BR para consistência */}
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {/* Envolve toda a aplicação com o AuthProvider */}
+    <html lang="pt-BR">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased flex`}> {/* <--- NOVO: Adiciona 'flex' aqui */}
         <AuthProvider>
-          {children}
+          {/* Renderiza o Sidebar */}
+          <Sidebar /> 
+          {/* O conteúdo da página ficará à direita do Sidebar */}
+          <main className="flex-1 ml-64"> {/* <--- NOVO: Adiciona 'ml-64' para dar espaço ao sidebar */}
+            {children}
+          </main>
         </AuthProvider>
       </body>
     </html>

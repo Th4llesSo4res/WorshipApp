@@ -5,6 +5,7 @@ import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import usePermission from "@/hooks/usePermission";
 
 export default function CadastroEnsaio() {
   usePermission(['lider', 'ministro']);

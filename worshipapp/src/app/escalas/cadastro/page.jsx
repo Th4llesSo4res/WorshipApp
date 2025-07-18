@@ -1,12 +1,15 @@
-// src/app/escalas/page.jsx
+// src/app/escalas/cadastro/page.jsx
 "use client";
 
 import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
+import usePermission from "@/hooks/usePermission"; // <--- ADICIONE ESTA LINHA DE IMPORTAÇÃO
 
-export default function EscalasPage() {
- usePermission(['lider', 'ministro']);
+export default function CadastroEscala() {
+  usePermission(['lider']); // Esta linha estava causando o erro porque usePermission não foi importado
+
   const [data, setData] = useState("");
   const [vocal, setVocal] = useState("");
   const [guitarra, setGuitarra] = useState("");
@@ -18,6 +21,11 @@ export default function EscalasPage() {
     e.preventDefault();
     setMensagem("");
 
+    if (!data || !vocal) { // Você pode adicionar mais validações aqui se quiser
+      setMensagem("Por favor, preencha a data e o vocal.");
+      return;
+    }
+
     try {
       await addDoc(collection(db, "escalas"), {
         data,
@@ -27,15 +35,17 @@ export default function EscalasPage() {
         bateria: bateria.split(",").map((nome) => nome.trim()),
         criadoEm: new Date(),
       });
-
       setMensagem("✅ Escala cadastrada com sucesso!");
       setData("");
       setVocal("");
       setGuitarra("");
       setTeclado("");
       setBateria("");
+      // Opcional: redirecionar para a lista de escalas após o cadastro
+      // useRouter().push("/escalas/lista");
     } catch (error) {
-      setMensagem("❌ Erro ao salvar: " + error.message);
+      setMensagem("❌ Erro ao salvar escala: " + error.message);
+      console.error("Erro ao salvar escala:", error);
     }
   };
 
@@ -44,7 +54,7 @@ export default function EscalasPage() {
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-full max-w-lg">
         <h2 className="text-2xl font-bold mb-4 text-center">Cadastrar Escala</h2>
 
-        <label>Data do culto:</label>
+        <label className="block mb-2 font-semibold">Data do culto:</label>
         <input
           type="date"
           value={data}
@@ -53,7 +63,7 @@ export default function EscalasPage() {
           required
         />
 
-        <label>Vocal (separe por vírgula):</label>
+        <label className="block mb-2 font-semibold">Vocal (separe por vírgula):</label>
         <input
           type="text"
           value={vocal}
@@ -61,7 +71,7 @@ export default function EscalasPage() {
           className="w-full p-2 mb-4 border border-gray-300 rounded"
         />
 
-        <label>Guitarra:</label>
+        <label className="block mb-2 font-semibold">Guitarra:</label>
         <input
           type="text"
           value={guitarra}
@@ -69,7 +79,7 @@ export default function EscalasPage() {
           className="w-full p-2 mb-4 border border-gray-300 rounded"
         />
 
-        <label>Teclado:</label>
+        <label className="block mb-2 font-semibold">Teclado:</label>
         <input
           type="text"
           value={teclado}
@@ -77,7 +87,7 @@ export default function EscalasPage() {
           className="w-full p-2 mb-4 border border-gray-300 rounded"
         />
 
-        <label>Bateria:</label>
+        <label className="block mb-2 font-semibold">Bateria:</label>
         <input
           type="text"
           value={bateria}

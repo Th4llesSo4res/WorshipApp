@@ -7,7 +7,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function EditarEscala() {
-  usePermission(['lider', 'ministro']);
+  usePermission(['lider']);
 
   const { id } = useParams();
   const router = useRouter();

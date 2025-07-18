@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import usePermission from "@/hooks/usePermission";
 
 export default function EditarMusicaDoRepertorio() {
   usePermission(['lider', 'ministro']);

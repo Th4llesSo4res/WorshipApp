@@ -5,18 +5,18 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, orderBy, doc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext"; // <--- 1. NOVO: Importa o useAuth
+import { useAuth } from "@/context/AuthContext";
 
 export default function ListaEscalas() {
   const [escalas, setEscalas] = useState([]);
-  const [loading, setLoading] = useState(true); // Alterado para true para refletir carregamento inicial
-  const [mensagem, setMensagem] = useState(""); // Adicionado estado de mensagem para feedback
+  const [loading, setLoading] = useState(true);
+  const [mensagem, setMensagem] = useState("");
   const router = useRouter();
-  const { role, loading: authLoading } = useAuth(); // <--- 2. NOVO: Pega o role e authLoading do AuthContext
+  const { role, loading: authLoading } = useAuth();
 
   async function carregarEscalas() {
     setLoading(true);
-    setMensagem(""); // Limpa mensagens anteriores
+    setMensagem("");
     try {
       const ref = collection(db, "escalas");
       const q = query(ref, orderBy("data", "asc"));
@@ -36,17 +36,16 @@ export default function ListaEscalas() {
   }
 
   useEffect(() => {
-    // <--- 3. NOVO: Garante que o papel do usuário já foi carregado antes de carregar as escalas
     if (!authLoading) {
       carregarEscalas();
     }
-  }, [authLoading]); // Depende do estado de carregamento da autenticação
+  }, [authLoading]);
 
   async function excluirEscala(id) {
     const confirmar = window.confirm("Tem certeza que deseja excluir esta escala?");
     if (!confirmar) return;
 
-    setMensagem(""); // Limpa mensagens anteriores
+    setMensagem("");
     try {
       await deleteDoc(doc(db, "escalas", id));
       setMensagem("✅ Escala excluída com sucesso!");
@@ -57,10 +56,11 @@ export default function ListaEscalas() {
     }
   }
 
-  // <--- 4. NOVO: Variável para determinar se o usuário pode editar/excluir/criar
-  const canManageEscalas = role === 'lider' || role === 'ministro';
+  // Permissão para CRIAR novas escalas (APENAS Líder)
+  const canCreateEscalas = role === 'lider'; // <--- MUDANÇA AQUI: Ministro não pode mais criar
+  // Permissão para EDITAR ou EXCLUIR escalas (APENAS Líder)
+  const canEditOrDeleteEscalas = role === 'lider'; // Já estava certo
 
-  // <--- 5. NOVO: Carregamento combinado (do AuthContext e da lista)
   if (loading || authLoading) {
     return <p className="p-4 text-center">Carregando escalas...</p>;
   }
@@ -69,8 +69,8 @@ export default function ListaEscalas() {
     <div className="min-h-screen bg-gray-100 py-10 px-4">
       <h1 className="text-3xl font-bold text-center mb-6 max-w-4xl mx-auto flex justify-between items-center">
         📅 Escalas Cadastradas
-        {/* <--- 5. NOVO: Mostra o botão "Nova Escala" apenas se canManageEscalas for true */}
-        {canManageEscalas && (
+        {/* Botão "Nova Escala" visível APENAS para Líder */}
+        {canCreateEscalas && (
           <button
             onClick={() => router.push("/escalas/cadastro")}
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
@@ -102,19 +102,18 @@ export default function ListaEscalas() {
               <p><strong>Bateria:</strong> {escala.bateria.join(", ")}</p>
             </div>
 
-            {/* <--- 5. NOVO: Mostra os botões "Editar" e "Excluir" apenas se canManageEscalas for true */}
-            {canManageEscalas && (
+            {/* Botões "Editar" e "Excluir" visíveis APENAS para Líder */}
+            {canEditOrDeleteEscalas && (
               <div className="flex gap-2 mt-4 md:mt-0">
                 <button
                   onClick={() => router.push(`/escalas/editar/${escala.id}`)}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white rounded px-4 py-2"
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded"
                 >
                   Editar
                 </button>
-
                 <button
                   onClick={() => excluirEscala(escala.id)}
-                  className="bg-red-600 hover:bg-red-700 text-white rounded px-4 py-2"
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
                 >
                   Excluir
                 </button>
