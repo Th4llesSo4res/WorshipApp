@@ -5,24 +5,28 @@ import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import usePermission from "@/hooks/usePermission"; // <--- ADICIONE ESTA LINHA DE IMPORTAÇÃO
+import usePermission from "@/hooks/usePermission";
+import { useToast } from "@/components/ToastNotification"; // Importa o useToast
 
 export default function CadastroEscala() {
-  usePermission(['lider']); // Esta linha estava causando o erro porque usePermission não foi importado
+  // Apenas 'lider' pode criar escalas
+  usePermission(['lider']); 
 
   const [data, setData] = useState("");
   const [vocal, setVocal] = useState("");
   const [guitarra, setGuitarra] = useState("");
   const [teclado, setTeclado] = useState("");
   const [bateria, setBateria] = useState("");
-  const [mensagem, setMensagem] = useState("");
+  // const [mensagem, setMensagem] = useState(""); // Removido
+  const router = useRouter();
+  const { addToast } = useToast(); // Obtém a função addToast
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMensagem("");
+    // setMensagem(""); // Removido
 
-    if (!data || !vocal) { // Você pode adicionar mais validações aqui se quiser
-      setMensagem("Por favor, preencha a data e o vocal.");
+    if (!data || !vocal) {
+      addToast("Por favor, preencha a data e o vocal.", "error");
       return;
     }
 
@@ -35,16 +39,16 @@ export default function CadastroEscala() {
         bateria: bateria.split(",").map((nome) => nome.trim()),
         criadoEm: new Date(),
       });
-      setMensagem("✅ Escala cadastrada com sucesso!");
+      addToast("Escala cadastrada com sucesso!", "success");
       setData("");
       setVocal("");
       setGuitarra("");
       setTeclado("");
       setBateria("");
       // Opcional: redirecionar para a lista de escalas após o cadastro
-      // useRouter().push("/escalas/lista");
+      // router.push("/escalas/lista");
     } catch (error) {
-      setMensagem("❌ Erro ao salvar escala: " + error.message);
+      addToast("Erro ao salvar escala: " + error.message, "error");
       console.error("Erro ao salvar escala:", error);
     }
   };
@@ -102,7 +106,7 @@ export default function CadastroEscala() {
           Salvar Escala
         </button>
 
-        {mensagem && <p className="mt-4 text-center">{mensagem}</p>}
+        {/* <p> de mensagem removido */}
       </form>
     </div>
   );

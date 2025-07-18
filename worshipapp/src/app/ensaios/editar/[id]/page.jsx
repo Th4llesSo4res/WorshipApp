@@ -5,47 +5,60 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import usePermission from "@/hooks/usePermission";
+import usePermission from "@/hooks/usePermission"; // Importa o hook de permissão
+import { useToast } from "@/components/ToastNotification"; // Importa o useToast
 
 export default function EditarEnsaioPage() {
+  // Apenas 'lider' e 'ministro' podem acessar
   usePermission(['lider', 'ministro']);
-  const { id } = useParams(); // Pega o ID do ensaio da URL
+
+  const { id } = useParams();
   const router = useRouter();
+  const { addToast } = useToast(); // Obtém a função addToast
 
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
   const [local, setLocal] = useState("");
   const [observacoes, setObservacoes] = useState("");
-  const [mensagem, setMensagem] = useState("");
+  // const [mensagem, setMensagem] = useState(""); // Removido
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function carregarEnsaio() {
-      if (!id) return; // Garante que o ID existe antes de buscar
+      if (!id) return;
+      setLoading(true);
+      // setMensagem(""); // Removido
+      try {
+        const docRef = doc(db, "ensaios", id);
+        const docSnap = await getDoc(docRef);
 
-      const docRef = doc(db, "ensaios", id);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const dadosEnsaio = docSnap.data();
-        setData(dadosEnsaio.data || "");
-        setHora(dadosEnsaio.hora || "");
-        setLocal(dadosEnsaio.local || "");
-        setObservacoes(dadosEnsaio.observacoes || "");
-      } else {
-        setMensagem("Ensaio não encontrado.");
+        if (docSnap.exists()) {
+          const dadosEnsaio = docSnap.data();
+          setData(dadosEnsaio.data || "");
+          setHora(dadosEnsaio.hora || "");
+          setLocal(dadosEnsaio.local || "");
+          setObservacoes(dadosEnsaio.observacoes || "");
+        } else {
+          addToast("Ensaio não encontrado.", "error");
+          // Opcional: redirecionar se o ensaio não for encontrado
+          // router.push("/ensaios/lista");
+        }
+      } catch (error) {
+        addToast("Erro ao carregar ensaio: " + error.message, "error");
+        console.error("Erro ao carregar ensaio:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     carregarEnsaio();
-  }, [id]); // Dependência do useEffect para recarregar se o ID mudar
+  }, [id]);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setMensagem("");
+    // setMensagem(""); // Removido
 
     if (!data || !hora || !local) {
-      setMensagem("Por favor, preencha a data, hora e local do ensaio.");
+      addToast("Por favor, preencha a data, hora e local do ensaio.", "error");
       return;
     }
 
@@ -58,10 +71,10 @@ export default function EditarEnsaioPage() {
         observacoes,
       });
 
-      setMensagem("✅ Ensaio atualizado com sucesso!");
-      setTimeout(() => router.push("/ensaios/lista"), 1500); // Redireciona para a lista após 1.5s
+      addToast("Ensaio atualizado com sucesso!", "success");
+      setTimeout(() => router.push("/ensaios/lista"), 1500);
     } catch (error) {
-      setMensagem("❌ Erro ao atualizar ensaio: " + error.message);
+      addToast("Erro ao atualizar ensaio: " + error.message, "error");
       console.error("Erro ao atualizar ensaio:", error);
     }
   }
@@ -70,14 +83,16 @@ export default function EditarEnsaioPage() {
     return <p className="p-4 text-center">Carregando ensaio...</p>;
   }
 
-  if (mensagem === "Ensaio não encontrado.") {
-    return <p className="p-4 text-center text-red-600">{mensagem}</p>;
+  if (!data && !hora && !local && !observacoes && !loading) { // Verifica se não carregou dados e não está mais carregando
+    return <p className="p-4 text-center text-red-600">Ensaio não encontrado ou erro ao carregar.</p>;
   }
 
   return (
     <div className="min-h-screen p-6 bg-gray-100 flex justify-center">
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-lg">
         <h1 className="text-2xl font-bold mb-6 text-center">Editar Ensaio</h1>
+
+        {/* <p> de mensagem removido */}
 
         <label className="block mb-2 font-semibold">Data:</label>
         <input
@@ -122,8 +137,6 @@ export default function EditarEnsaioPage() {
         >
           Atualizar Ensaio
         </button>
-
-        {mensagem && <p className="mt-4 text-center">{mensagem}</p>}
       </form>
     </div>
   );

@@ -5,24 +5,28 @@ import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import usePermission from "@/hooks/usePermission";
+import usePermission from "@/hooks/usePermission"; // Importa o hook de permissão
+import { useToast } from "@/components/ToastNotification"; // Importa o useToast
 
 export default function CadastroEnsaio() {
+  // Apenas 'lider' e 'ministro' podem acessar
   usePermission(['lider', 'ministro']);
+
   const router = useRouter();
+  const { addToast } = useToast(); // Obtém a função addToast
 
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
   const [local, setLocal] = useState("");
   const [observacoes, setObservacoes] = useState("");
-  const [mensagem, setMensagem] = useState("");
+  // const [mensagem, setMensagem] = useState(""); // Removido
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setMensagem("");
+    // setMensagem(""); // Removido
 
     if (!data || !hora || !local) {
-      setMensagem("Por favor, preencha a data, hora e local do ensaio.");
+      addToast("Por favor, preencha a data, hora e local do ensaio.", "error");
       return;
     }
 
@@ -35,15 +39,16 @@ export default function CadastroEnsaio() {
         criadoEm: new Date().toISOString(),
       });
 
-      setMensagem("✅ Ensaio agendado com sucesso!");
+      addToast("Ensaio agendado com sucesso!", "success");
       setData("");
       setHora("");
       setLocal("");
       setObservacoes("");
       
-      setTimeout(() => router.push("/ensaios/lista"), 1500); // Redireciona para uma lista futura
+      setTimeout(() => router.push("/ensaios/lista"), 1500);
     } catch (error) {
-      setMensagem("❌ Erro ao agendar ensaio: " + error.message);
+      addToast("Erro ao agendar ensaio: " + error.message, "error");
+      console.error("Erro ao agendar ensaio:", error);
     }
   }
 
@@ -96,7 +101,7 @@ export default function CadastroEnsaio() {
           Agendar Ensaio
         </button>
 
-        {mensagem && <p className="mt-4 text-center">{mensagem}</p>}
+        {/* <p> de mensagem removido */}
       </form>
     </div>
   );

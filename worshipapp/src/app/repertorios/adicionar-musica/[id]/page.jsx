@@ -1,19 +1,20 @@
-// src/app/repertorios/editar-musica/[repertorioId]/[musicaIndex]/page.jsx
+// src/app/repertorios/adicionar-musica/[id]/page.jsx
 "use client";
 
-import { useState, useEffect } from "react"; // <--- CORREÇÃO AQUI
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import usePermission from "@/hooks/usePermission";
-import { useToast } from "@/components/ToastNotification";
+import usePermission from "@/hooks/usePermission"; // Importa o hook de permissão
+import { useToast } from "@/components/ToastNotification"; // Importa o useToast
 
-export default function EditarMusicaDoRepertorio() {
+export default function AdicionarMusicaAoRepertorio() {
+  // Apenas 'lider' e 'ministro' podem acessar
   usePermission(['lider', 'ministro']);
 
-  const { repertorioId, musicaIndex } = useParams();
+  const { id } = useParams(); // Pega o ID do repertório da URL
   const router = useRouter();
-  const { addToast } = useToast();
+  const { addToast } = useToast(); // Obtém a função addToast
 
   const [repertorio, setRepertorio] = useState(null);
   const [nome, setNome] = useState("");
@@ -21,55 +22,36 @@ export default function EditarMusicaDoRepertorio() {
   const [cifra, setCifra] = useState("");
   const [tomOriginal, setTomOriginal] = useState("");
   const [tomAdaptado, setTomAdaptado] = useState("");
+  // const [mensagem, setMensagem] = useState(""); // Removido
   const [loading, setLoading] = useState(true);
 
-  // Função auxiliar para garantir array a partir de string ou array
-  function toArray(strOrArray) {
-    if (Array.isArray(strOrArray)) return strOrArray;
-    if (typeof strOrArray === "string")
-      return strOrArray.split(",").map((nome) => nome.trim());
-    return [];
-  }
-
   useEffect(() => {
-    async function carregarMusica() {
-      if (!repertorioId || musicaIndex === undefined) return;
+    async function carregarRepertorio() {
+      if (!id) return;
       setLoading(true);
+      // setMensagem(""); // Removido
       try {
-        const docRef = doc(db, "repertorios", repertorioId);
+        const docRef = doc(db, "repertorios", id);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          const dadosRepertorio = { id: docSnap.id, ...docSnap.data() };
-          setRepertorio(dadosRepertorio);
-
-          const index = parseInt(musicaIndex, 10);
-
-          if (dadosRepertorio.musicas && dadosRepertorio.musicas[index]) {
-            const musicaParaEditar = dadosRepertorio.musicas[index];
-            setNome(musicaParaEditar.nome || "");
-            setYoutube(musicaParaEditar.youtube || "");
-            setCifra(musicaParaEditar.cifra || "");
-            setTomOriginal(musicaParaEditar.tomOriginal || "");
-            setTomAdaptado(musicaParaEditar.tomAdaptado || "");
-          } else {
-            addToast("Música não encontrada no repertório.", "error");
-          }
+          setRepertorio({ id: docSnap.id, ...docSnap.data() });
         } else {
           addToast("Repertório não encontrado.", "error");
         }
       } catch (error) {
-        addToast("Erro ao carregar música: " + error.message, "error");
-        console.error("Erro ao carregar música para edição:", error);
+        addToast("Erro ao carregar repertório: " + error.message, "error");
+        console.error("Erro ao carregar repertório:", error);
       } finally {
         setLoading(false);
       }
     }
-    carregarMusica();
-  }, [repertorioId, musicaIndex]);
+    carregarRepertorio();
+  }, [id]);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    // setMensagem(""); // Removido
 
     if (!nome) {
       addToast("Por favor, preencha o nome da música.", "error");
@@ -77,11 +59,7 @@ export default function EditarMusicaDoRepertorio() {
     }
 
     try {
-      const docRef = doc(db, "repertorios", repertorioId);
-      const index = parseInt(musicaIndex, 10);
-
-      const musicasAtualizadas = [...repertorio.musicas];
-      musicasAtualizadas[index] = {
+      const novaMusica = {
         nome,
         youtube,
         cifra,
@@ -89,31 +67,38 @@ export default function EditarMusicaDoRepertorio() {
         tomAdaptado,
       };
 
+      const docRef = doc(db, "repertorios", id);
       await updateDoc(docRef, {
-        musicas: musicasAtualizadas,
+        musicas: arrayUnion(novaMusica),
       });
 
-      addToast("Música atualizada com sucesso!", "success");
+      addToast("Música adicionada com sucesso ao repertório!", "success");
+      setNome("");
+      setYoutube("");
+      setCifra("");
+      setTomOriginal("");
+      setTomAdaptado("");
+
       setTimeout(() => router.push("/repertorios/lista"), 1500);
     } catch (error) {
-      addToast("Erro ao atualizar música: " + error.message, "error");
-      console.error("Erro ao atualizar música:", error);
+      addToast("Erro ao adicionar música: " + error.message, "error");
+      console.error("Erro ao adicionar música:", error);
     }
   }
 
   if (loading) {
-    return <p className="p-4 text-center">Carregando música...</p>;
+    return <p className="p-4 text-center">Carregando repertório...</p>;
   }
 
-  if (!repertorio || musicaIndex === undefined || !repertorio.musicas || !repertorio.musicas[parseInt(musicaIndex, 10)]) {
-    return <p className="p-4 text-center text-red-600">Música ou repertório não encontrado.</p>;
+  if (!repertorio) {
+    return <p className="p-4 text-center text-red-600">Repertório não encontrado ou erro ao carregar.</p>; // Mensagem mais genérica
   }
 
   return (
     <div className="min-h-screen p-6 bg-gray-100 flex justify-center">
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-lg">
         <h1 className="text-2xl font-bold mb-6 text-center">
-          Editar Música do Repertório
+          Adicionar Música ao Repertório
         </h1>
         <p className="text-center mb-4">
           **Culto: {new Date(repertorio.dataCulto).toLocaleDateString()}**
@@ -166,8 +151,10 @@ export default function EditarMusicaDoRepertorio() {
           type="submit"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded"
         >
-          Atualizar Música
+          Adicionar Música
         </button>
+
+        {/* <p> de mensagem removido */}
       </form>
     </div>
   );

@@ -1,20 +1,25 @@
+// src/app/repertorios/cadastro/page.jsx
 "use client";
 
 import { useState } from "react";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import usePermission from "@/hooks/usePermission";
+import usePermission from "@/hooks/usePermission"; // Importa o hook de permissão
+import { useToast } from "@/components/ToastNotification"; // Importa o useToast
 
 export default function CadastroRepertorio() {
-    usePermission(['lider', 'ministro']);
+  // Apenas 'lider' e 'ministro' podem acessar
+  usePermission(['lider', 'ministro']);
+
   const router = useRouter();
+  const { addToast } = useToast(); // Obtém a função addToast
 
   const [dataCulto, setDataCulto] = useState("");
   const [musicas, setMusicas] = useState([
     { nome: "", youtube: "", cifra: "", tomOriginal: "", tomAdaptado: "" },
   ]);
-  const [mensagem, setMensagem] = useState("");
+  // const [mensagem, setMensagem] = useState(""); // Removido
 
   function handleMusicaChange(index, campo, valor) {
     const novasMusicas = [...musicas];
@@ -34,15 +39,15 @@ export default function CadastroRepertorio() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setMensagem("");
+    // setMensagem(""); // Removido
 
     if (!dataCulto) {
-      setMensagem("Por favor, informe a data do culto.");
+      addToast("Por favor, informe a data do culto.", "error");
       return;
     }
 
-    if (musicas.length === 0) {
-      setMensagem("Adicione pelo menos uma música.");
+    if (musicas.length === 0 || musicas.some(m => !m.nome)) {
+      addToast("Adicione pelo menos uma música e preencha o nome.", "error");
       return;
     }
 
@@ -53,13 +58,14 @@ export default function CadastroRepertorio() {
         criadoEm: new Date().toISOString(),
       });
 
-      setMensagem("✅ Repertório cadastrado com sucesso!");
+      addToast("Repertório cadastrado com sucesso!", "success");
       setDataCulto("");
       setMusicas([{ nome: "", youtube: "", cifra: "", tomOriginal: "", tomAdaptado: "" }]);
       
       setTimeout(() => router.push("/repertorios/lista"), 1500);
     } catch (error) {
-      setMensagem("❌ Erro ao salvar repertório: " + error.message);
+      addToast("Erro ao salvar repertório: " + error.message, "error");
+      console.error("Erro ao salvar repertório:", error);
     }
   }
 
@@ -151,7 +157,7 @@ export default function CadastroRepertorio() {
           Salvar Repertório
         </button>
 
-        {mensagem && <p className="mt-4 text-center">{mensagem}</p>}
+        {/* <p> de mensagem removido */}
       </form>
     </div>
   );

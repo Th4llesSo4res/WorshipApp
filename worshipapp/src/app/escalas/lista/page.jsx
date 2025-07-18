@@ -6,17 +6,19 @@ import { collection, getDocs, query, orderBy, doc, deleteDoc } from "firebase/fi
 import { db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ToastNotification"; // Importa o useToast
 
 export default function ListaEscalas() {
   const [escalas, setEscalas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mensagem, setMensagem] = useState("");
+  // const [mensagem, setMensagem] = useState(""); // Removido
   const router = useRouter();
   const { role, loading: authLoading } = useAuth();
+  const { addToast } = useToast(); // Obtém a função addToast
 
   async function carregarEscalas() {
     setLoading(true);
-    setMensagem("");
+    // setMensagem(""); // Removido
     try {
       const ref = collection(db, "escalas");
       const q = query(ref, orderBy("data", "asc"));
@@ -30,7 +32,7 @@ export default function ListaEscalas() {
       setEscalas(dados);
     } catch (error) {
       console.error("Erro ao carregar escalas:", error);
-      setMensagem("Erro ao carregar escalas. Por favor, tente novamente.");
+      addToast("Erro ao carregar escalas. Por favor, tente novamente.", "error"); // Usa addToast
     }
     setLoading(false);
   }
@@ -45,21 +47,21 @@ export default function ListaEscalas() {
     const confirmar = window.confirm("Tem certeza que deseja excluir esta escala?");
     if (!confirmar) return;
 
-    setMensagem("");
+    // setMensagem(""); // Removido
     try {
       await deleteDoc(doc(db, "escalas", id));
-      setMensagem("✅ Escala excluída com sucesso!");
+      addToast("Escala excluída com sucesso!", "success"); // Usa addToast
       carregarEscalas();
     } catch (error) {
-      setMensagem("❌ Erro ao excluir: " + error.message);
+      addToast("Erro ao excluir: " + error.message, "error"); // Usa addToast
       console.error("Erro ao excluir escala:", error);
     }
   }
 
   // Permissão para CRIAR novas escalas (APENAS Líder)
-  const canCreateEscalas = role === 'lider'; // <--- MUDANÇA AQUI: Ministro não pode mais criar
+  const canCreateEscalas = role === 'lider';
   // Permissão para EDITAR ou EXCLUIR escalas (APENAS Líder)
-  const canEditOrDeleteEscalas = role === 'lider'; // Já estava certo
+  const canEditOrDeleteEscalas = role === 'lider';
 
   if (loading || authLoading) {
     return <p className="p-4 text-center">Carregando escalas...</p>;
@@ -69,7 +71,6 @@ export default function ListaEscalas() {
     <div className="min-h-screen bg-gray-100 py-10 px-4">
       <h1 className="text-3xl font-bold text-center mb-6 max-w-4xl mx-auto flex justify-between items-center">
         📅 Escalas Cadastradas
-        {/* Botão "Nova Escala" visível APENAS para Líder */}
         {canCreateEscalas && (
           <button
             onClick={() => router.push("/escalas/cadastro")}
@@ -81,7 +82,7 @@ export default function ListaEscalas() {
       </h1>
 
       <div className="max-w-4xl mx-auto space-y-6">
-        {mensagem && <p className="text-center mt-4" style={{ color: mensagem.startsWith('✅') ? 'green' : 'red' }}>{mensagem}</p>}
+        {/* <p> de mensagem removido */}
 
         {escalas.length === 0 && (
           <p className="text-center text-gray-600">Nenhuma escala cadastrada ainda.</p>
@@ -102,7 +103,6 @@ export default function ListaEscalas() {
               <p><strong>Bateria:</strong> {escala.bateria.join(", ")}</p>
             </div>
 
-            {/* Botões "Editar" e "Excluir" visíveis APENAS para Líder */}
             {canEditOrDeleteEscalas && (
               <div className="flex gap-2 mt-4 md:mt-0">
                 <button

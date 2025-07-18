@@ -5,23 +5,24 @@ import { useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import usePermission from "@/hooks/usePermission"; // Importa o novo hook de permissão
+import usePermission from "@/hooks/usePermission";
+import { useToast } from "@/components/ToastNotification"; // Importa o useToast
 
 export default function CadastroPage() {
   // Apenas 'lider' pode acessar esta página de cadastro de usuários
-  // Se o usuário não for líder, será redirecionado para /dashboard (padrão)
-  usePermission(['lider', 'ministro']); 
+  usePermission(['lider']); 
 
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [role, setRole] = useState("musico"); 
-  const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState("");
+  // const [erro, setErro] = useState(""); // Removido, useToast fará isso
+  // const [sucesso, setSucesso] = useState(""); // Removido, useToast fará isso
+  const { addToast } = useToast(); // Obtém a função addToast
 
   const handleCadastro = async (e) => {
     e.preventDefault();
-    setErro("");
-    setSucesso("");
+    // setErro(""); // Removido
+    // setSucesso(""); // Removido
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
@@ -33,12 +34,12 @@ export default function CadastroPage() {
         createdAt: new Date().toISOString()
       });
 
-      setSucesso(`Usuário "${email}" com papel "${role}" criado com sucesso!`);
+      addToast(`Usuário "${email}" com papel "${role}" criado com sucesso!`, "success"); // Usa addToast
       setEmail("");
       setSenha("");
       setRole("musico");
     } catch (err) {
-      setErro("Erro ao criar usuário: " + err.message);
+      addToast("Erro ao criar usuário: " + err.message, "error"); // Usa addToast
     }
   };
 
@@ -89,8 +90,7 @@ export default function CadastroPage() {
           Cadastrar
         </button>
 
-        {sucesso && <p className="text-green-600 mt-4">{sucesso}</p>}
-        {erro && <p className="text-red-600 mt-4">{erro}</p>}
+        {/* <p> de sucesso/erro removidos, pois useToast fará isso */}
       </form>
     </div>
   );
